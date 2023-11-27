@@ -1,9 +1,43 @@
-const mongoose = require("mongoose");
+const { Schema, model } = require("mongoose");
+const Joi = require("joi");
 
-const DB_HOST = "mongodb+srv://kasperskyi:H34Lsd4nD@db-contacts.cqq0pwi.mongodb.net/db-contacts?retryWrites=true&w=majority";
+const { handleMongooseError } = require("../helpers");
 
-mongoose.set('strictQuery', true);
+const contactSchema = new Schema({
+  name: {
+    type: String,
+    required: [true, "Set name for contact"],
+  },
+  email: {
+    type: String,
+  },
+  phone: {
+    type: String,
+  },
+  favorite: {
+    type: Boolean,
+    default: false,
+  },
+});
 
-mongoose.connect(DB_HOST)
-    .then(() => console.log("Database conected success"))
-    .catch(() => console.log(error.message));
+const Contact = model("contact", contactSchema);
+
+contactSchema.post("save", handleMongooseError);
+
+const addSchema = Joi.object({
+  name: Joi.string().required(),
+  email: Joi.string().required(),
+  phone: Joi.string().required(),
+  favorite: Joi.boolean(),
+});
+
+const updateFavoriteSchema = Joi.object({
+  favorite: Joi.boolean().required(),
+});
+
+const schemas = {
+  addSchema,
+  updateFavoriteSchema,
+};
+
+module.exports = { Contact, schemas };
