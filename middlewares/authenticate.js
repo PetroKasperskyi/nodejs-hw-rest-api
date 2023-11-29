@@ -6,7 +6,7 @@ const { HttpError } = require("../helpers");
 
 const { SECRET_KEY } = process.env;
 
-const authencticate = async (req, res, next) => {
+const authenticate = async (req, res, next) => {
   const { authorization = "" } = req.headers;
   const [bearer, token] = authorization.split(" ");
   if (bearer !== "Bearer") {
@@ -25,4 +25,4 @@ const authencticate = async (req, res, next) => {
   next();
 };
 
-module.exports = authencticate;
+module.exports = authenticate;
