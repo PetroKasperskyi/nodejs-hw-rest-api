@@ -18,6 +18,10 @@ const contactSchema = new Schema({
     type: Boolean,
     default: false,
   },
+   owner: {
+    type: Schema.Types.ObjectId,
+    ref: "user",
+  },
 });
 
 const Contact = model("contact", contactSchema);
@@ -40,4 +44,4 @@ const schemas = {
   updateFavoriteSchema,
 };
 
-module.exports = { Contact, schemas };
+module.exports = { Contact , schemas };
