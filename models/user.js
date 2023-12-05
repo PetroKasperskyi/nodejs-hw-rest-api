@@ -3,7 +3,9 @@ const Joi = require("joi");
 
 const { handleMongooseError } = require("../helpers");
 
-const userSchema = new Schema({ password: {
+const userSchema = new Schema(
+{
+    password: {
     type: String,
     required: [true, 'Set password for user'],
   },
@@ -17,7 +19,12 @@ const userSchema = new Schema({ password: {
     enum: ["starter", "pro", "business"],
     default: "starter"
   },
-    token: String
+     token: String,
+    avatarURL: { type: String },
+    verify: {
+      type: Boolean,
+      default: false,
+    },
 },
     { versionKey: false, timestamps: true }
 );
