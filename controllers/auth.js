@@ -4,14 +4,15 @@ const gravatar = require("gravatar");
 const path = require("path");
 const fs = require("node:fs/promises");
 const Jimp = require("jimp");
+const crypto = require("node:crypto");
 
 
 const { User } = require("../models/user");
 
-const { HttpError, ctrlWrapper } = require("../helpers");
+const { HttpError, ctrlWrapper, sendEmail} = require("../helpers");
 
 
-const { SECRET_KEY } = process.env;
+const { SECRET_KEY, BASE_URL} = process.env;
 
 const avatarsDIR = path.join(__dirname, "../", "public", "avatars");
 
@@ -25,12 +26,69 @@ const register = async (req, res) => {
 
   const hashPassword = await bcrypt.hash(password, 10);
   const avatarURL = gravatar.url(email);
+  const verificationToken = crypto.randomUUID();
 
-  const newUser = await User.create({ ...req.body, password: hashPassword, avatarURL });
+  const verifyEmail = {
+    to: email,
+    subject: "Verify email",
+    html: `To confirm your registration please click on the <a target="_blank" href="${BASE_URL}/api/auth/verify/${verificationToken}">verify email</a>`,
+    text: `To confirm your registration please open the lick ${BASE_URL}/api/auth/verify/${verificationToken}`,
+  };
+
+   await sendEmail(verifyEmail);
+
+  const newUser = await User.create({
+    ...req.body,
+    verificationToken,
+    password: hashPassword,
+    avatarURL
+  });
 
   res.status(201).json({
     email: newUser.email,
     subscription: newUser.subscription,
+    avatarURL,
+  });
+};
+
+
+const verifyEmail = async (req, res) => {
+  const { verificationToken } = req.params;
+  const user = await User.findOne({ verificationToken });
+  if (!user) {
+    throw HttpError(404, "User not found");
+  }
+  await User.findByIdAndUpdate(user._id, {
+    verify: true,
+    verificationToken: "",
+  });
+
+  res.status(200).json({
+    message: "Verification successful",
+  });
+};
+
+const resendVerifyEmail = async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw HttpError(400, "Missing required field email");
+  }
+  if (user.verify) {
+    throw HttpError(400, "Verification has already been passed");
+  }
+
+  const verifyEmail = {
+    to: email,
+    subject: "Verify email",
+    html: `To confirm your registration please click on the <a target="_blank" href="${BASE_URL}/api/auth/verify/${user.verificationToken}">verify email</a>`,
+    text: `To confirm your registration please open the lick ${BASE_URL}/api/auth/verify/${user.verificationToken}`,
+  };
+
+  await sendEmail(verifyEmail);
+
+  res.status(200).json({
+    message: "Verification email send success",
   });
 };
 
@@ -126,4 +184,6 @@ module.exports = {
   logout: ctrlWrapper(logout),
   subscription: ctrlWrapper(subscription),
   updateAvatar: ctrlWrapper(updateAvatar),
+  verifyEmail: ctrlWrapper(verifyEmail),
+  resendVerifyEmail: ctrlWrapper(resendVerifyEmail),
 };
